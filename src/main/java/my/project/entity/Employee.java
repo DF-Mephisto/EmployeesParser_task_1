@@ -1,14 +1,15 @@
-package Entity;
+package my.project.entity;
 
+import java.math.BigDecimal;
 import java.util.Objects;
 
 public class Employee {
 
     private String name;
-    private String department;
-    private Double salary;
+    private Department department;
+    private BigDecimal salary;
 
-    public Employee(String name, String department, Double salary)
+    public Employee(String name, Department department, BigDecimal salary)
     {
         this.name = name;
         this.department = department;
@@ -23,19 +24,19 @@ public class Employee {
         this.name = name;
     }
 
-    public String getDepartment() {
+    public Department getDepartment() {
         return department;
     }
 
-    public void setDepartment(String department) {
+    public void setDepartment(Department department) {
         this.department = department;
     }
 
-    public Double getSalary() {
+    public BigDecimal getSalary() {
         return salary;
     }
 
-    public void setSalary(Double salary) {
+    public void setSalary(BigDecimal salary) {
         this.salary = salary;
     }
 
@@ -54,11 +55,12 @@ public class Employee {
         return Objects.hash(name, department, salary);
     }
 
+
     @Override
     public String toString() {
         return "Employee{" +
                 "name='" + name + '\'' +
-                ", department='" + department + '\'' +
+                ", department='" + department.getName() + '\'' +
                 ", salary=" + salary +
                 '}';
     }

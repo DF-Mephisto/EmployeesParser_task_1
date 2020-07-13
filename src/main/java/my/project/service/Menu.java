@@ -1,18 +1,27 @@
-package Service;
+package my.project.service;
 
-import java.io.File;
-import java.util.Optional;
 import java.util.Scanner;
 
 public class Menu implements AutoCloseable {
 
-    private EmployeeParser parser;
+    private DepartmentsDataStorage dataBase;
     private Scanner scanner;
+
+    //Menu items
+    private final int EXIT = 0;
+    private final int BACK = 0;
+    private final int OPEN_FILE = 1;
+    private final int OPEN_DATA_MENU = 2;
+    private final int OPEN_DEPARTMENT_MENU = 1;
+    private final int LIST_EMPOLYEES = 2;
+    private final int SAVE_TRANSFERS = 3;
 
     public Menu()
     {
-        parser = new EmployeeParser();
+        dataBase = new DepartmentsDataStorage();
         scanner = new Scanner(System.in);
+
+        System.out.println("Main menu:");
     }
 
 
@@ -29,15 +38,15 @@ public class Menu implements AutoCloseable {
 
             switch(code)
             {
-                    case 0:
+                    case EXIT:
                         exit = true;
                         break;
 
-                    case 1:
+                    case OPEN_FILE:
                         openFile();
                         break;
 
-                    case 2:
+                    case OPEN_DATA_MENU:
                         processEmployeesMenu();
                         break;
             }
@@ -54,16 +63,20 @@ public class Menu implements AutoCloseable {
 
             switch(code)
             {
-                case 0:
+                case BACK:
                     back = true;
                     break;
 
-                case 1:
+                case OPEN_DEPARTMENT_MENU:
                     processDepSalMenu();
                     break;
 
-                case 2:
-                    parser.listEmployees();
+                case LIST_EMPOLYEES:
+                    dataBase.listEmployees();
+                    break;
+
+                case SAVE_TRANSFERS:
+                    saveTransfers();
                     break;
             }
         }
@@ -75,17 +88,18 @@ public class Menu implements AutoCloseable {
 
         while (!back)
         {
-            StringBuilder depName = new StringBuilder();
-            int code = depSalPage(depName);
+            int code = depSalPage();
 
             switch(code)
             {
-                case 0:
+                case BACK:
                     back = true;
                     break;
 
+                //Departments list
                 default:
-                    parser.showDepartmentAvgSalary(depName.toString());
+                    String deps[] = dataBase.getAllDepartments();
+                    dataBase.showDepartmentAvgSalary(deps[code - 1]);
                     break;
             }
         }
@@ -97,7 +111,7 @@ public class Menu implements AutoCloseable {
 
     private int mainPage()
     {
-        boolean fileLoaded = parser.loaded();
+        boolean fileLoaded = !dataBase.isEmpty();
 
         System.out.println("0: Exit");
         System.out.println("1: Load file");
@@ -114,16 +128,17 @@ public class Menu implements AutoCloseable {
         System.out.println("0: Back");
         System.out.println("1: Average department salary");
         System.out.println("2: List employees");
+        System.out.println("3: Save possible transfers with increased average salary to file");
 
         int min = 0;
-        int max = 2;
+        int max = 3;
 
         return getReturnCode(min, max);
     }
 
-    private int depSalPage(StringBuilder depName)
+    private int depSalPage()
     {
-        String deps[] = parser.getDepartments();
+        String deps[] = dataBase.getAllDepartments();
         int min = 0;
         int max = 0;
 
@@ -136,7 +151,6 @@ public class Menu implements AutoCloseable {
         }
 
         int retCode = getReturnCode(min, max);
-        if (retCode > 0) depName.append(deps[retCode - 1]);
 
         return retCode;
     }
@@ -148,38 +162,22 @@ public class Menu implements AutoCloseable {
     private void openFile()
     {
         System.out.println("Enter path to a file:");
-        scanner.nextLine(); //clears buffer
 
-        File file;
-        String path = "";
-        boolean validFilePath = false;
-
-        while (!validFilePath)
+        if (scanner.hasNextLine())
         {
-            if (scanner.hasNextLine())
-                path = scanner.nextLine();
+            String path = scanner.nextLine();
+            dataBase.loadFromFile(path);
+        }
+    }
 
-            Optional<String> extension = Optional.ofNullable(path)
-                    .filter(f -> f.contains("."))
-                    .map(f -> f.substring(f.lastIndexOf(".") + 1));
+    private void saveTransfers()
+    {
+        System.out.println("Enter path to a file:");
 
-            if (extension.isEmpty() || !extension.get().equals("emp"))
-            {
-                System.out.println("Invalid file extension, must be \"emp\"");
-                continue;
-            }
-
-            file = new File(path);
-
-            if (file.exists())
-            {
-                validFilePath = true;
-                parser.setFile(file);
-            }
-            else
-            {
-                System.out.println("Can't open a file");
-            }
+        if (scanner.hasNextLine())
+        {
+            String path = scanner.nextLine();
+            dataBase.saveTransferByAvgSalary(path);
         }
     }
 
@@ -192,7 +190,8 @@ public class Menu implements AutoCloseable {
         {
             if (scanner.hasNextInt())
                 code = scanner.nextInt();
-            else scanner.nextLine();
+
+            scanner.nextLine(); //clears buffer
 
             if (code >= min && code <= max)
             {
