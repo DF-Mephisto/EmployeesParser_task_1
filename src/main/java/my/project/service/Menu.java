@@ -14,7 +14,11 @@ public class Menu implements AutoCloseable {
     private final int OPEN_DATA_MENU = 2;
     private final int OPEN_DEPARTMENT_MENU = 1;
     private final int LIST_EMPOLYEES = 2;
-    private final int SAVE_TRANSFERS = 3;
+    private final int SAVE_PERSON_TRANSFERS = 3;
+    private final int SAVE_GROUP_TRANSFERS = 4;
+
+    private final int PERSON = 0;
+    private final int GROUP = 1;
 
     public Menu()
     {
@@ -72,11 +76,15 @@ public class Menu implements AutoCloseable {
                     break;
 
                 case LIST_EMPOLYEES:
-                    dataBase.listEmployees();
+                    dataBase.printEmployees();
                     break;
 
-                case SAVE_TRANSFERS:
-                    saveTransfers();
+                case SAVE_PERSON_TRANSFERS:
+                    saveTransfers(PERSON);
+                    break;
+
+                case SAVE_GROUP_TRANSFERS:
+                    saveTransfers(GROUP);
                     break;
             }
         }
@@ -99,7 +107,7 @@ public class Menu implements AutoCloseable {
                 //Departments list
                 default:
                     String deps[] = dataBase.getAllDepartments();
-                    dataBase.showDepartmentAvgSalary(deps[code - 1]);
+                    dataBase.printDepartmentAvgSalary(deps[code - 1]);
                     break;
             }
         }
@@ -128,10 +136,11 @@ public class Menu implements AutoCloseable {
         System.out.println("0: Back");
         System.out.println("1: Average department salary");
         System.out.println("2: List employees");
-        System.out.println("3: Save possible transfers with increased average salary to file");
+        System.out.println("3: Save possible transfers for one person with increased average salary to file");
+        System.out.println("4: Save possible transfers for group with increased average salary to file");
 
         int min = 0;
-        int max = 3;
+        int max = 4;
 
         return getReturnCode(min, max);
     }
@@ -170,14 +179,18 @@ public class Menu implements AutoCloseable {
         }
     }
 
-    private void saveTransfers()
+    private void saveTransfers(int type)
     {
         System.out.println("Enter path to a file:");
 
         if (scanner.hasNextLine())
         {
             String path = scanner.nextLine();
-            dataBase.saveTransferByAvgSalary(path);
+
+            if (type == PERSON)
+                dataBase.savePersonTransfersByAvgSalary(path);
+            else if (type == GROUP)
+                dataBase.saveGroupTransfersByAvgSalary(path);
         }
     }
 

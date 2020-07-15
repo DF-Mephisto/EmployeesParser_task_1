@@ -10,24 +10,19 @@ import java.util.*;
 
 public class FileParser {
 
-    private HashMap<String, Department> departments;
+    private DepartmentsDataStorage db;
 
-    public FileParser()
+    public FileParser(DepartmentsDataStorage db)
     {
-        departments = new HashMap<>();
-    }
-
-    public HashMap<String, Department> getDepartments() {
-        return departments;
+        this.db = db;
     }
 
     public boolean openFile(String path)
     {
-        departments.clear();
+        db.getDepartments().clear();
 
-        Scanner scanner = null;
-
-        try {
+        try
+        {
             Optional<String> extension = Optional.ofNullable(path)
                     .filter(f -> f.contains("."))
                     .map(f -> f.substring(f.lastIndexOf(".") + 1));
@@ -35,19 +30,16 @@ public class FileParser {
             if (extension.isEmpty() || !extension.get().equals("emp"))
                 throw new FileNotFoundException("Invalid file extension, must be \"emp\"");
 
-            scanner = new Scanner(new FileReader(path));
-
-            int line = 1;
-            while (scanner.hasNextLine()) {
-                processLine(scanner.nextLine(), line);
-                line++;
+            try (Scanner scanner = new Scanner(new FileReader(path))) {
+                int line = 1;
+                while (scanner.hasNextLine()) {
+                    processLine(scanner.nextLine(), line);
+                    line++;
+                }
             }
-
         } catch (FileNotFoundException e) {
-            System.out.println("Can't open a file " + path + ":\n" + e.getMessage());
-            return false;
-        } finally {
-            if (scanner != null) scanner.close();
+                System.out.println("Can't open a file " + path + ":\n" + e.getMessage());
+                return false;
         }
 
         return true;
@@ -75,11 +67,11 @@ public class FileParser {
 
             //Get department
             depName = data[1];
-            department = departments.get(depName);
+            department = db.getDepartments().get(depName.toUpperCase());
             if (department == null)
             {
                 department = new Department(depName);
-                departments.put(depName, department);
+                db.getDepartments().put(depName.toUpperCase(), department);
             }
 
         }

@@ -25,9 +25,9 @@ public class Main {
 
         if (!dataBase.isEmpty())
         {
-            dataBase.listEmployees();
-            dataBase.showDepartmentsAvgSalary();
-            dataBase.saveTransferByAvgSalary(output);
+            dataBase.printEmployees();
+            dataBase.printDepartmentsAvgSalary();
+            dataBase.saveGroupTransfersByAvgSalary(output);
         }
     }
 }

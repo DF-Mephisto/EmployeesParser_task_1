@@ -8,34 +8,28 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 
 public class DepartmentsDataStorage {
 
-    private HashMap<String, Department> departments;
+    private Map<String, Department> departments;
 
     public DepartmentsDataStorage()
     {
         departments = new HashMap<>();
     }
 
-    public HashMap<String, Department> getDepartments() {
+    public Map<String, Department> getDepartments() {
         return departments;
     }
 
     public void loadFromFile(String path)
     {
-        FileParser parser = new FileParser();
-
-        if (parser.openFile(path))
-        {
-            departments = parser.getDepartments();
-        }
+        FileParser parser = new FileParser(this);
+        parser.openFile(path);
     }
 
-    public void listEmployees()
+    public void printEmployees()
     {
         for (Department dep : departments.values())
         {
@@ -49,17 +43,17 @@ public class DepartmentsDataStorage {
         return departments.keySet().toArray(deps);
     }
 
-    public void showDepartmentsAvgSalary()
+    public void printDepartmentsAvgSalary()
     {
         for (String department : departments.keySet())
         {
-            showDepartmentAvgSalary(department);
+            printDepartmentAvgSalary(department);
         }
     }
 
-    public void showDepartmentAvgSalary(String dep)
+    public void printDepartmentAvgSalary(String depName)
     {
-        Department department = departments.get(dep);
+        Department department = departments.get(depName.toUpperCase());
 
         try{
             if (department == null)
@@ -73,30 +67,23 @@ public class DepartmentsDataStorage {
         System.out.println("Average salary in department " + department.getName() + ": " + department.getAvgSalary());
     }
 
-    public void saveTransferByAvgSalary(String path)
+    public void savePersonTransfersByAvgSalary(String path)
     {
         if (departments.size() < 2) return;
 
         try(BufferedWriter writer = new BufferedWriter(new FileWriter(path)))
         {
-            List<DepartmentSummary> deps = new ArrayList<>();
-            for (Department dep : departments.values())
+            for (Department oldDep : departments.values())
             {
-                deps.add(new DepartmentSummary(dep.getName(), dep.getAvgSalary(), dep.getTotalSalary(),
-                        dep.getEmployees().size(), dep.getEmployees()));
-            }
-
-            for (DepartmentSummary dep : deps)
-            {
-                for (Employee emp : dep.emps)
+                for (Employee emp : oldDep.getEmployees())
                 {
                     BigDecimal empSalary = emp.getSalary();
-                    if (empSalary.compareTo(dep.avgSalary) != -1) continue;
+                    if (empSalary.compareTo(oldDep.getAvgSalary()) >= 0) continue;
 
-                    for (DepartmentSummary trDep : deps)
+                    for (Department newDep : departments.values())
                     {
-                        if (trDep != dep && empSalary.compareTo(trDep.avgSalary) == 1)
-                            writer.write(makeEntry(dep, trDep, emp));
+                        if (newDep != oldDep && empSalary.compareTo(newDep.getAvgSalary()) > 0)
+                            writer.write(makeEntry(oldDep, newDep, Arrays.asList(emp), emp.getSalary()));
                     }
                 }
             }
@@ -105,20 +92,77 @@ public class DepartmentsDataStorage {
         }
     }
 
-    private String makeEntry(DepartmentSummary curDep, DepartmentSummary newDep, Employee emp)
+    public void saveGroupTransfersByAvgSalary(String path)
     {
-        BigDecimal oldDepNewSalary = curDep.totalSalary.subtract(emp.getSalary())
-                .divide(new BigDecimal(curDep.size - 1), 2, RoundingMode.HALF_UP);
+        if (departments.size() < 2) return;
 
-        BigDecimal newDepNewSalary = newDep.totalSalary.add(emp.getSalary())
-                .divide(new BigDecimal(newDep.size + 1), 2, RoundingMode.HALF_UP);
+        try(BufferedWriter writer = new BufferedWriter(new FileWriter(path)))
+        {
+            for (Department oldDep : departments.values())
+                writer.write(makeGroupsTransfersEntry(oldDep, 0, new ArrayList<>()).toString());
 
-        String entry = "Transfer employee " + emp.getName() + " from " + curDep.name + " to " + newDep.name +
+        } catch (IOException e) {
+            System.out.println("Error has occurred during writing a file " + path + ' ' + e.getMessage());
+        }
+    }
+
+    private StringBuilder makeGroupsTransfersEntry(Department oldDep, int index, List<Employee> group)
+    {
+        StringBuilder entry;
+
+        if (index == oldDep.getEmployees().size())
+        {
+            entry = new StringBuilder();
+            if (!group.isEmpty())
+            {
+                BigDecimal groupTotalSalary = BigDecimal.ZERO;
+                for (Employee emp : group) groupTotalSalary = groupTotalSalary.add(emp.getSalary());
+
+                BigDecimal groupAvgSalary = groupTotalSalary.divide(new BigDecimal(group.size()), 2, RoundingMode.HALF_UP);
+
+                if (groupAvgSalary.compareTo(oldDep.getAvgSalary()) < 0)
+                {
+                    for (Department newDep : departments.values())
+                    {
+                        if (oldDep != newDep && groupAvgSalary.compareTo(newDep.getAvgSalary()) > 0)
+                            entry.append(makeEntry(oldDep, newDep, group, groupTotalSalary));
+                    }
+                }
+            }
+
+            return entry;
+        }
+
+        entry = makeGroupsTransfersEntry(oldDep, index + 1, group);
+
+        group.add(oldDep.getEmployees().get(index));
+        entry.append(makeGroupsTransfersEntry(oldDep, index + 1, group));
+        group.remove(group.size() - 1);
+        return entry;
+    }
+
+    private String makeEntry(Department oldDep, Department newDep, List<Employee> group,
+                                  BigDecimal groupTotalSalary)
+    {
+        BigDecimal oldDepNewSalary = oldDep.getTotalSalary().subtract(groupTotalSalary)
+                .divide(new BigDecimal(oldDep.getEmployees().size() - group.size()), 2, RoundingMode.HALF_UP);
+
+        BigDecimal newDepNewSalary = newDep.getTotalSalary().add(groupTotalSalary)
+                .divide(new BigDecimal(newDep.getEmployees().size() + group.size()), 2, RoundingMode.HALF_UP);
+
+        StringBuilder employeesNames = new StringBuilder();
+        for (int i = 0; i < group.size(); i++)
+        {
+            employeesNames.append(group.get(i).getName());
+            if (i < group.size() - 1) employeesNames.append(", ");
+        }
+
+        String entry = "Transfer employees: " + employeesNames + " from " + oldDep.getName() + " to " + newDep.getName() +
                 " will cause next changes:" + System.lineSeparator() +
                 "old salary:" + System.lineSeparator() +
-                curDep.name + ": " + curDep.avgSalary + "\t" + newDep.name + ": " + newDep.avgSalary + System.lineSeparator() +
+                oldDep.getName() + ": " + oldDep.getAvgSalary() + "\t" + newDep.getName() + ": " + newDep.getAvgSalary() + System.lineSeparator() +
                 "new salary:" + System.lineSeparator() +
-                curDep.name + ": " + oldDepNewSalary + "\t" + newDep.name + ": " + newDepNewSalary +
+                oldDep.getName() + ": " + oldDepNewSalary + "\t" + newDep.getName() + ": " + newDepNewSalary +
                 System.lineSeparator() + System.lineSeparator();
 
         return entry;
@@ -127,22 +171,5 @@ public class DepartmentsDataStorage {
     public boolean isEmpty()
     {
         return departments.isEmpty();
-    }
-
-    private class DepartmentSummary
-    {
-        String name;
-        BigDecimal avgSalary;
-        BigDecimal totalSalary;
-        int size;
-        List<Employee> emps;
-
-        DepartmentSummary(String name, BigDecimal avgSalary, BigDecimal totalSalary, int size, List<Employee> emps) {
-            this.name = name;
-            this.avgSalary = avgSalary;
-            this.totalSalary = totalSalary;
-            this.size = size;
-            this.emps = emps;
-        }
     }
 }
