@@ -113,7 +113,7 @@ public class DepartmentsDataStorage {
         if (index == oldDep.getEmployees().size())
         {
             entry = new StringBuilder();
-            if (!group.isEmpty())
+            if (!group.isEmpty() && !(group.size() == oldDep.getEmployees().size()))
             {
                 BigDecimal groupTotalSalary = BigDecimal.ZERO;
                 for (Employee emp : group) groupTotalSalary = groupTotalSalary.add(emp.getSalary());
