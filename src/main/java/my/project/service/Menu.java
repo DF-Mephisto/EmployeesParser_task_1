@@ -13,7 +13,7 @@ public class Menu implements AutoCloseable {
     private final int OPEN_FILE = 1;
     private final int OPEN_DATA_MENU = 2;
     private final int OPEN_DEPARTMENT_MENU = 1;
-    private final int LIST_EMPOLYEES = 2;
+    private final int LIST_EMPLOYEES = 2;
     private final int SAVE_PERSON_TRANSFERS = 3;
     private final int SAVE_GROUP_TRANSFERS = 4;
 
@@ -75,7 +75,7 @@ public class Menu implements AutoCloseable {
                     processDepSalMenu();
                     break;
 
-                case LIST_EMPOLYEES:
+                case LIST_EMPLOYEES:
                     dataBase.printEmployees();
                     break;
 

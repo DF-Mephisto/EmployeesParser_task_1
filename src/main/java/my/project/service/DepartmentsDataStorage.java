@@ -116,7 +116,8 @@ public class DepartmentsDataStorage {
             if (!group.isEmpty() && !(group.size() == oldDep.getEmployees().size()))
             {
                 BigDecimal groupTotalSalary = BigDecimal.ZERO;
-                for (Employee emp : group) groupTotalSalary = groupTotalSalary.add(emp.getSalary());
+                for (Employee emp : group)
+                    groupTotalSalary = groupTotalSalary.add(emp.getSalary());
 
                 BigDecimal groupAvgSalary = groupTotalSalary.divide(new BigDecimal(group.size()), 2, RoundingMode.HALF_UP);
 
@@ -135,9 +136,10 @@ public class DepartmentsDataStorage {
 
         entry = makeGroupsTransfersEntry(oldDep, index + 1, group);
 
-        group.add(oldDep.getEmployees().get(index));
+        Employee emp = oldDep.getEmployees().get(index);
+        group.add(emp);
         entry.append(makeGroupsTransfersEntry(oldDep, index + 1, group));
-        group.remove(group.size() - 1);
+        group.remove(emp);
         return entry;
     }
 

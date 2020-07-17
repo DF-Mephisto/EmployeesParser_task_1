@@ -17,7 +17,7 @@ public class FileParser {
         this.db = db;
     }
 
-    public boolean openFile(String path)
+    public void openFile(String path)
     {
         db.getDepartments().clear();
 
@@ -39,10 +39,7 @@ public class FileParser {
             }
         } catch (FileNotFoundException e) {
                 System.out.println("Can't open a file " + path + ":\n" + e.getMessage());
-                return false;
         }
-
-        return true;
     }
 
     private void processLine(String line, int lineNumber)
@@ -54,19 +51,21 @@ public class FileParser {
         String depName;
 
         try{
-            if ((data = line.split("\\s+\\|\\s+")).length != 3)
+            if ((data = line.split("\\|", -1)).length != 3)
                 throw new IllegalArgumentException("Line doesn't match required format: Name | Department | Salary");
 
             //Get name
-            name = data[0];
+            name = data[0].trim();
+            if (name.isBlank()) throw new IllegalArgumentException("Name mustn't be blank");
 
             //Get salary
-            salary = new BigDecimal(data[2]);
-            if (salary.compareTo(BigDecimal.ZERO) < 0) throw new NumberFormatException("Salary can't be negative");
+            salary = new BigDecimal(data[2].trim());
+            if (salary.compareTo(BigDecimal.ZERO) <= 0) throw new NumberFormatException("Salary can't be negative or zero");
             if (salary.scale() > 2) throw new NumberFormatException("Salary scale can't be more than 2");
 
             //Get department
-            depName = data[1];
+            depName = data[1].trim();
+            if (depName.isBlank()) throw new IllegalArgumentException("Department name mustn't be blank");
             department = db.getDepartments().get(depName.toUpperCase());
             if (department == null)
             {
@@ -77,7 +76,11 @@ public class FileParser {
         }
         catch(IllegalArgumentException e)
         {
-            System.out.println("Line parse error has occurred in line " + lineNumber + ":\n" + e.getMessage());
+            String msg = e.getMessage();
+            if (msg == null)
+                msg = e.getClass().getName();
+
+            System.out.println("Line parse error has occurred in line " + lineNumber + ":\n" + msg);
             return;
         }
 
